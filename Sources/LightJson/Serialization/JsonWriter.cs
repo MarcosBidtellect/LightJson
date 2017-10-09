@@ -17,6 +17,10 @@ namespace LightJson.Serialization
 		private bool isNewLine;
 		private TextWriter writer;
 
+		internal const string JsonNullString = "null";
+		internal const string JsonTrueString = "true";
+		internal const string JsonFalseString = "false";
+
 		/// <summary>
 		/// A set of containing all the collection objects (JsonObject/JsonArray) being rendered.
 		/// It is used to prevent circular references; since collections that contain themselves
@@ -89,27 +93,19 @@ namespace LightJson.Serialization
 			switch (value.Type)
 			{
 				case JsonValueType.Null:
-					Write("null");
+					Write(JsonNullString);
 					break;
 
 				case JsonValueType.Boolean:
-					Write(value.AsString);
+					Write(ToJson((bool)value));
 					break;
 
 				case JsonValueType.Number:
-					Write(((double)value).ToString(CultureInfo.InvariantCulture));
+					Write(ToJson((double)value));
 					break;
 
 				case JsonValueType.String:
 					WriteEncodedString((string)value);
-					break;
-
-				case JsonValueType.Object:
-					Write(string.Format("JsonObject[{0}]", value.AsJsonObject.Count));
-					break;
-
-				case JsonValueType.Array:
-					Write(string.Format("JsonArray[{0}]", value.AsJsonArray.Count));
 					break;
 
 				default:
@@ -355,9 +351,16 @@ namespace LightJson.Serialization
 			}
 		}
 
-		private static bool IsValidNumber(double number)
+		internal static string ToJson(bool value)
 		{
-			return !(double.IsNaN(number) || double.IsInfinity(number));
+			return (value)
+				? JsonTrueString
+				: JsonFalseString;
+		}
+
+		internal static string ToJson(double value)
+		{
+			return value.ToString(CultureInfo.InvariantCulture);
 		}
 	}
 }

@@ -39,7 +39,7 @@ namespace LightJson
 		{
 			get
 			{
-				return this.Type == JsonValueType.Null;
+				return (this.Type == JsonValueType.Null);
 			}
 		}
 
@@ -50,7 +50,7 @@ namespace LightJson
 		{
 			get
 			{
-				return this.Type == JsonValueType.Boolean;
+				return (this.Type == JsonValueType.Boolean);
 			}
 		}
 
@@ -68,7 +68,9 @@ namespace LightJson
 
 				var value = this.value;
 
-				return (value >= Int32.MinValue) && (value <= Int32.MaxValue) && unchecked((Int32)value) == value;
+				return (value >= Int32.MinValue)
+					&& (value <= Int32.MaxValue)
+					&& unchecked((Int32)value) == value;
 			}
 		}
 
@@ -79,7 +81,7 @@ namespace LightJson
 		{
 			get
 			{
-				return this.Type == JsonValueType.Number;
+				return (this.Type == JsonValueType.Number);
 			}
 		}
 
@@ -90,7 +92,7 @@ namespace LightJson
 		{
 			get
 			{
-				return this.Type == JsonValueType.String;
+				return (this.Type == JsonValueType.String);
 			}
 		}
 
@@ -101,7 +103,7 @@ namespace LightJson
 		{
 			get
 			{
-				return this.Type == JsonValueType.Object;
+				return (this.Type == JsonValueType.Object);
 			}
 		}
 
@@ -112,7 +114,7 @@ namespace LightJson
 		{
 			get
 			{
-				return this.Type == JsonValueType.Array;
+				return (this.Type == JsonValueType.Array);
 			}
 		}
 
@@ -123,7 +125,7 @@ namespace LightJson
 		{
 			get
 			{
-				return this.AsDateTime != null;
+				return (this.AsDateTime != null);
 			}
 		}
 
@@ -213,7 +215,7 @@ namespace LightJson
 		}
 
 		/// <summary>
-		/// Gets this value as a String type.
+		/// Gets this value as a String.
 		/// </summary>
 		public string AsString
 		{
@@ -222,12 +224,10 @@ namespace LightJson
 				switch (this.Type)
 				{
 					case JsonValueType.Boolean:
-						return (this.value == 1)
-							? "true"
-							: "false";
+						return JsonWriter.ToJson(this.value == 1);
 
 					case JsonValueType.Number:
-						return this.value.ToString();
+						return JsonWriter.ToJson(this.value);
 
 					case JsonValueType.String:
 						return (string)this.reference;
@@ -419,7 +419,7 @@ namespace LightJson
 		/// <param name="value">The value to be wrapped.</param>
 		public JsonValue(double? value)
 		{
-			if (value.HasValue)
+			if (value.HasValue && IsValidNumber(value.Value))
 			{
 				this.reference = null;
 
@@ -845,6 +845,11 @@ namespace LightJson
 			{
 				return reader.Serialize(this);
 			}
+		}
+
+		private static bool IsValidNumber(double number)
+		{
+			return !(double.IsNaN(number) || double.IsInfinity(number));
 		}
 
 		private class JsonValueDebugView

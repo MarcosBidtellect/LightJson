@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using LightJson.Serialization;
 
 namespace LightJson
@@ -12,7 +13,7 @@ namespace LightJson
 	[DebuggerTypeProxy(typeof(JsonObjectDebugView))]
 	public sealed class JsonObject : IEnumerable<KeyValuePair<string, JsonValue>>, IEnumerable<JsonValue>
 	{
-		private IDictionary<string, JsonValue> properties;
+		private readonly IDictionary<string, JsonValue> properties = new Dictionary<string, JsonValue>();
 
 		/// <summary>
 		/// Gets the number of properties in this JsonObject.
@@ -53,12 +54,44 @@ namespace LightJson
 			}
 		}
 
+        /// <summary>
+        /// Creates a JsonObject from a C# object.
+        /// </summary>
+        /// <param name="value">Value to create an object for.</param>
+	    public JsonObject(object value)
+	    {
+            // add each field
+	        var type = value.GetType();
+	        var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
+	        for (int i = 0, len = fields.Length; i < len; i++)
+	        {
+	            var field = fields[i];
+	            var name = field.Name;
+
+	            var ignoreAttributes = field.GetCustomAttributes(typeof(JsonIgnoreAttribute), true);
+	            if (ignoreAttributes.Length > 0)
+	            {
+	                continue;
+	            }
+
+                var nameAttributes = field.GetCustomAttributes(typeof(JsonNameAttribute), true);
+	            if (nameAttributes.Length > 0)
+	            {
+	                name = ((JsonNameAttribute) nameAttributes[0]).Name;
+	            }
+
+                properties[name] = ToJsonValue(
+                    field.FieldType,
+                    field.GetValue(value));
+	        }
+	    }
+
 		/// <summary>
 		/// Initializes a new instance of JsonObject.
 		/// </summary>
 		public JsonObject()
 		{
-			this.properties = new Dictionary<string, JsonValue>();
+			//
 		}
 
 		/// <summary>
@@ -218,7 +251,49 @@ namespace LightJson
 			}
 		}
 
-		private class JsonObjectDebugView
+        /// <summary>
+        /// TODO: Move to JsValue?
+        /// </summary>
+	    private JsonValue ToJsonValue(Type type, object value)
+	    {
+	        if (type == typeof(long)
+	            || type == typeof(int)
+	            || type == typeof(short)
+	            || type == typeof(byte)
+	            || type == typeof(float)
+	            || type == typeof(double))
+	        {
+	            return new JsonValue(Convert.ToDouble(value));
+	        }
+
+	        if (type == typeof(bool))
+	        {
+	            return new JsonValue(Convert.ToBoolean(value));
+	        }
+
+	        if (type == typeof(string))
+	        {
+	            return new JsonValue(Convert.ToString(value));
+	        }
+
+	        if (type.IsArray)
+	        {
+	            var fieldValues = (Array) value;
+	            var values = new JsonValue[null == fieldValues ? 0 : fieldValues.Length];
+	            for (int j = 0, jlen = values.Length; j < jlen; j++)
+	            {
+	                values[j] = ToJsonValue(
+	                    type.GetElementType(),
+	                    fieldValues.GetValue(j));
+	            }
+
+	            return new JsonValue(new JsonArray(values));
+	        }
+
+	        return new JsonValue(new JsonObject(value));
+	    }
+
+        private class JsonObjectDebugView
 		{
 			private JsonObject jsonObject;
 
